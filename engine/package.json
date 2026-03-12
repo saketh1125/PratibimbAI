@@ -1,0 +1,50 @@
+{
+  "name": "pratibimb-ai-engine",
+  "version": "1.0.0",
+  "description": "PratibimbAI - React Three Fiber 3D Engine for Educational Mobile App",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:mobile": "vite build --outDir ../mobile/assets/www --emptyOutDir",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.92.7",
+    "@react-three/fiber": "^8.15.12",
+    "@react-three/postprocessing": "^2.15.11",
+    "postprocessing": "^6.34.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.160.0",
+    "zustand": "^4.4.7",
+    "immer": "^10.0.3",
+    "@types/three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8"
+  },
+  "keywords": [
+    "react-three-fiber",
+    "three.js",
+    "3d-engine",
+    "educational",
+    "mobile",
+    "webgl",
+    "flutter"
+  ],
+  "author": "PratibimbAI Team",
+  "license": "MIT"
+}

@@ -1,0 +1,43 @@
+# PratibimbAI Backend Requirements
+# FastAPI Backend with Gemini Integration
+
+# Core Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+
+# Google Generative AI
+google-generativeai==0.3.2
+
+# HTTP Client
+httpx==0.26.0
+aiohttp==3.9.1
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# CORS Middleware
+starlette==0.35.1
+
+# Caching
+cachetools==5.3.2
+
+# Logging
+loguru==0.7.2
+
+# Type Hints
+typing-extensions==4.9.0
+
+# Optional: Local LLM Support (for future Gemma/Qwen integration)
+# transformers==4.36.2
+# torch==2.1.2
+# accelerate==0.25.0
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+
+# Development
+black==23.12.1
+isort==5.13.2
+mypy==1.8.0
