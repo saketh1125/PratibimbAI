@@ -471,9 +471,9 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
   Widget _buildUIOverlay() {
     return Stack(
       children: [
-        /// TOP CONTROL BAR
+        /// TOP CONTROL BAR - Compact height
         Positioned(
-          top: 24,
+          top: 20,
           left: 16,
           right: 16,
           child: Row(
@@ -484,27 +484,30 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
                   _resetUiTimer();
                   setState(() => _isSidebarOpen = true);
                 },
-                child: const Icon(Icons.menu, color: Colors.white, size: 24),
+                child: const Icon(Icons.menu, color: Colors.white, size: 20),
               ),
-              const SizedBox(width: 12),
-              // Search container
+              const SizedBox(width: 8),
+              // Search container - reduced height
               Expanded(
                 child: GlassContainer(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
                     children: [
-                      const SizedBox(width: 16),
-                      const Icon(Icons.search, color: Colors.white54, size: 20),
-                      const SizedBox(width: 12),
+                      const Icon(Icons.search, color: Colors.white54, size: 16),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: _searchController,
                           style: const TextStyle(
-                              color: Colors.white, fontSize: 16),
+                              color: Colors.white, fontSize: 14),
                           decoration: const InputDecoration(
-                            hintText: 'Visualize anything...',
+                            hintText: 'Visualize...',
                             hintStyle:
-                                TextStyle(color: Colors.white38, fontSize: 16),
+                                TextStyle(color: Colors.white38, fontSize: 14),
                             border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
                           ),
                           onSubmitted: (value) {
                             _resetUiTimer();
@@ -514,22 +517,26 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
                           },
                         ),
                       ),
-                      GlassButton(
-                        onTap: () {
-                          _resetUiTimer();
-                          if (_searchController.text.trim().isNotEmpty) {
-                            _loadScene(_searchController.text.trim());
-                          }
-                        },
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                        ),
-                        child: const Text(
-                          'Generate',
-                          style: TextStyle(color: Colors.white, fontSize: 14),
+                      const SizedBox(width: 4),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        child: GlassButton(
+                          onTap: () {
+                            _resetUiTimer();
+                            if (_searchController.text.trim().isNotEmpty) {
+                              _loadScene(_searchController.text.trim());
+                            }
+                          },
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                          ),
+                          child: const Text(
+                            'Go',
+                            style: TextStyle(color: Colors.white, fontSize: 12),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 8),
                     ],
                   ),
                 ),
@@ -538,34 +545,38 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
           ),
         ),
 
-        /// INSTRUCTION OVERLAY
+        /// GESTURE HINT - Positioned below top bar
         Positioned(
-          top: 100,
+          top: 90,
           left: 16,
-          child: GlassContainer(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: const Text(
-              'Drag to rotate • Pinch to zoom',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
-                height: 1.3,
+          right: 16,
+          child: Center(
+            child: GlassContainer(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: const Text(
+                'Drag to rotate • Pinch to zoom',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
         ),
 
-        /// BOTTOM INFO PANEL
+        /// BOTTOM INFO PANEL - Compact
         Positioned(
-          bottom: 24,
+          bottom: 20,
           left: 16,
           right: 16,
           child: GlassContainer(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
-                // Scene info
-                Flexible(
+                // Scene info with ellipsis
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -574,47 +585,48 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
                         _currentScene,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
                         ),
                         overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                       const Text(
-                        'Educational 3D Scene',
+                        '3D Scene',
                         style: TextStyle(
                           color: Colors.white54,
-                          fontSize: 12,
+                          fontSize: 10,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                // GPU status
+                const SizedBox(width: 12),
+                // GPU status - compact
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 8,
-                        height: 8,
+                        width: 6,
+                        height: 6,
                         decoration: const BoxDecoration(
                           color: Color(0xFF22C55E),
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
+                      const SizedBox(width: 6),
+                      const Text(
                         'WebGL',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Color(0xFF22C55E),
-                          fontSize: 12,
+                          fontSize: 10,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
