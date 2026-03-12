@@ -1,141 +1,85 @@
+# -------------------------
 # Python
+# -------------------------
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
 MANIFEST
+
+# Virtual environments
 venv/
 .venv/
 env/
 ENV/
-env.bak/
-venv.bak/
 backend/venv/
+
+# Python cache
 backend/__pycache__/
 backend/**/*.pyc
-backend/**/*.pyo
-backend/**/*.pyd
 
-# Node
+# -------------------------
+# Node / Vite
+# -------------------------
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
 dist/
 .npm/
 .yarn-integrity
+.cache/
+.parcel-cache
 
+# -------------------------
 # Flutter
+# -------------------------
 build/
 .dart_tool/
 .packages
 .pub-cache/
 .pub/
-/.flutter-plugins
-/.flutter-plugins-dependencies
+
 .flutter-plugins
 .flutter-plugins-dependencies
-metadata
+
 mobile/build/
 mobile/.dart_tool/
-.mobile/flutter-plugins
-.mobile/flutter-plugins-dependencies
-mobile/.packages
 
+# React build copied into Flutter
+mobile/assets/www/
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+logs/
+
+# -------------------------
 # IDE
+# -------------------------
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
+# -------------------------
 # OS
+# -------------------------
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 Desktop.ini
 
-# Logs
-*.log
-logs/
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
-
-# nyc test coverage
-.nyc_output
-
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# next.js build output
-.next
-
-# nuxt.js build output
-.nuxt
-
-# vuepress build output
-.vuepress/dist
-
-# Serverless directories
-.serverless
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# TernJS port file
-.tern-port
-
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
-
-# Temporary folders
+# -------------------------
+# Temp
+# -------------------------
 tmp/
 temp/
+
+# -------------------------
+# Coverage
+# -------------------------
+coverage/
+.nyc_output
+*.lcov
