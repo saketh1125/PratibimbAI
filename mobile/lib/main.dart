@@ -12,6 +12,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
+import 'screens/home_screen.dart';
+import 'screens/learn_screen.dart';
+import 'screens/processing_screen.dart';
+import 'screens/result_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,7 +45,39 @@ class PratibimbAIApp extends StatelessWidget {
           background: const Color(0xFF0A0A1A),
         ),
       ),
-      home: const PratibimbAIHome(),
+      initialRoute: '/',
+      routes: {
+        '/': (_) => const HomeScreen(),
+        '/learn': (_) => const LearnScreen(),
+        '/viewer': (_) => const PratibimbAIHome(),
+      },
+      onGenerateRoute: (settings) {
+        // Handle routes that need arguments
+        if (settings.name == '/processing') {
+          final query = settings.arguments as String? ?? '';
+          return MaterialPageRoute(
+            builder: (_) => ProcessingScreen(query: query),
+          );
+        }
+        if (settings.name == '/result') {
+          final args = settings.arguments;
+          if (args is Map<String, dynamic>) {
+            return MaterialPageRoute(
+              builder: (_) => ResultScreen(
+                query: args['query'] ?? '',
+                blueprintJson: args['blueprint'],
+                explanation: args['explanation'],
+              ),
+            );
+          } else {
+            final query = args as String? ?? '';
+            return MaterialPageRoute(
+              builder: (_) => ResultScreen(query: query),
+            );
+          }
+        }
+        return null;
+      },
     );
   }
 }
@@ -69,6 +105,10 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
   bool _uiVisible = true;
   Timer? _uiHideTimer;
 
+  // Initial routing arguments
+  String? _initialArgs;
+  bool _hasAttemptedInitialLoad = false;
+
   // API Configuration
   static const String apiBaseUrl =
       'http://localhost:8000'; // Change for production
@@ -85,6 +125,39 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
     });
     // Start UI auto-hide timer
     _resetUiTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasAttemptedInitialLoad) {
+      _hasAttemptedInitialLoad = true;
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args != null && args is String) {
+        _initialArgs = args;
+      }
+      _checkAndLoadInitialArgs();
+    }
+  }
+
+  void _checkAndLoadInitialArgs() {
+    if (_bridgeReady && _hasAttemptedInitialLoad) {
+      if (_initialArgs != null) {
+        _sceneController.loadScene(_initialArgs!);
+        _initialArgs = null; // Prevent reloading
+      } else {
+        // Show empty environment if no arguments provided
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void loadSceneFromArgs(String json) {
+    if (_bridgeReady) {
+      _sceneController.loadScene(json);
+    } else {
+      _initialArgs = json;
+    }
   }
 
   @override
@@ -108,6 +181,7 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
         case 'BRIDGE_READY':
           setState(() => _bridgeReady = true);
           debugPrint('Bridge is ready - can now load scenes');
+          _checkAndLoadInitialArgs();
           break;
         case 'ERROR':
           _showError(data['error'] ?? 'Unknown error');

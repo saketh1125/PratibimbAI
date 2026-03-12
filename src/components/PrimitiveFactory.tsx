@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -42,7 +42,14 @@ function createGeometry(type: PrimitiveType, args: number[]): THREE.BufferGeomet
   }
 }
 
-// Single Primitive Mesh Component
+// Helper function to create a unique key for grouping primitives
+function createGroupKey(primitive: Primitive): string {
+  const { type, args, material } = primitive;
+  const materialKey = `${material.color}-${material.metalness}-${material.roughness}-${material.emissive || ''}-${material.emissiveIntensity || 0}-${material.opacity ?? 1}-${material.transparent || false}-${material.wireframe || false}-${material.flatShading || false}`;
+  return `${type}-${JSON.stringify(args)}-${materialKey}`;
+}
+
+// Single Primitive Mesh Component (for non-instanced primitives with special properties)
 const PrimitiveMesh: React.FC<PrimitiveProps> = ({ primitive, isSelected, onClick }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const { type, args, transform, material, animate, castShadow = true, receiveShadow = true } = primitive;
@@ -115,7 +122,108 @@ const PrimitiveMesh: React.FC<PrimitiveProps> = ({ primitive, isSelected, onClic
   return mesh;
 };
 
-// Primitive Factory Component - renders all primitives
+// Instanced Mesh Component for grouped primitives
+const InstancedPrimitiveGroup: React.FC<{
+  primitives: Primitive[];
+  selectedId?: string | null;
+  onSelect?: (id: string | null) => void;
+}> = ({ primitives, selectedId, onSelect }) => {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const { type, args, material } = primitives[0];
+
+  // Create geometry
+  const geometry = useMemo(() => createGeometry(type, args), [type, args]);
+
+  // Create material
+  const meshMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(material.color),
+      metalness: material.metalness,
+      roughness: material.roughness,
+      emissive: material.emissive ? new THREE.Color(material.emissive) : undefined,
+      emissiveIntensity: material.emissiveIntensity || 0,
+      opacity: material.opacity ?? 1,
+      transparent: material.transparent || (material.opacity !== undefined && material.opacity < 1),
+      wireframe: material.wireframe || false,
+      flatShading: material.flatShading || false,
+      side: THREE.DoubleSide
+    });
+  }, [material]);
+
+  // Set up instance matrices
+  useEffect(() => {
+    if (!meshRef.current) return;
+
+    const mesh = meshRef.current;
+    const tempMatrix = new THREE.Matrix4();
+    const tempPosition = new THREE.Vector3();
+    const tempRotation = new THREE.Euler();
+    const tempScale = new THREE.Vector3();
+
+    primitives.forEach((primitive, index) => {
+      const { pos, rot, scale } = primitive.transform;
+      tempPosition.fromArray(pos);
+      tempRotation.fromArray(rot);
+      tempScale.fromArray(scale);
+      
+      tempMatrix.compose(tempPosition, new THREE.Quaternion().setFromEuler(tempRotation), tempScale);
+      mesh.setMatrixAt(index, tempMatrix);
+    });
+
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [primitives]);
+
+  // Handle click on instances
+  const handleClick = (event: any) => {
+    event.stopPropagation();
+    const instanceId = event.instanceId;
+    if (instanceId !== undefined) {
+      const primitive = primitives[instanceId];
+      const id = primitive.id || `primitive-${instanceId}`;
+      onSelect?.(id);
+    }
+  };
+
+  // Animation for rotating instances
+  useFrame((_, delta) => {
+    if (!meshRef.current) return;
+
+    const mesh = meshRef.current;
+    const tempMatrix = new THREE.Matrix4();
+    const tempPosition = new THREE.Vector3();
+    const tempRotation = new THREE.Euler();
+    const tempScale = new THREE.Vector3();
+
+    primitives.forEach((primitive, index) => {
+      if (primitive.animate?.rotation) {
+        mesh.getMatrixAt(index, tempMatrix);
+        tempMatrix.decompose(tempPosition, new THREE.Quaternion(), tempScale);
+        
+        // Update rotation
+        tempRotation.x += primitive.animate.rotation[0] * delta;
+        tempRotation.y += primitive.animate.rotation[1] * delta;
+        tempRotation.z += primitive.animate.rotation[2] * delta;
+        
+        tempMatrix.compose(tempPosition, new THREE.Quaternion().setFromEuler(tempRotation), tempScale);
+        mesh.setMatrixAt(index, tempMatrix);
+      }
+    });
+
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[geometry, meshMaterial, primitives.length]}
+      castShadow={primitives.some(p => p.castShadow !== false)}
+      receiveShadow={primitives.some(p => p.receiveShadow !== false)}
+      onClick={handleClick}
+    />
+  );
+};
+
+// Primitive Factory Component - renders all primitives with instancing
 interface PrimitiveFactoryProps {
   primitives: Primitive[];
   selectedId?: string | null;
@@ -127,9 +235,44 @@ export const PrimitiveFactory: React.FC<PrimitiveFactoryProps> = ({
   selectedId,
   onSelect
 }) => {
+  // Group primitives by type, args, and material properties
+  const groupedPrimitives = useMemo(() => {
+    const groups: Map<string, Primitive[]> = new Map();
+    const specialPrimitives: Primitive[] = [];
+
+    primitives.forEach((primitive) => {
+      // Skip primitives with special properties from instancing
+      const hasSpecialProperties = primitive.animate?.float || 
+                                  (primitive.id && selectedId === primitive.id);
+
+      if (hasSpecialProperties) {
+        specialPrimitives.push(primitive);
+      } else {
+        const key = createGroupKey(primitive);
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key)!.push(primitive);
+      }
+    });
+
+    return { groups, specialPrimitives };
+  }, [primitives, selectedId]);
+
   return (
     <group name="primitives-group">
-      {primitives.map((primitive, index) => {
+      {/* Render instanced groups */}
+      {Array.from(groupedPrimitives.groups.entries()).map(([key, groupPrimitives], index) => (
+        <InstancedPrimitiveGroup
+          key={`instanced-group-${index}`}
+          primitives={groupPrimitives}
+          selectedId={selectedId}
+          onSelect={onSelect}
+        />
+      ))}
+      
+      {/* Render special primitives individually */}
+      {groupedPrimitives.specialPrimitives.map((primitive, index) => {
         const id = primitive.id || `primitive-${index}`;
         return (
           <PrimitiveMesh
