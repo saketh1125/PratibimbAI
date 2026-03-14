@@ -14,6 +14,8 @@ declare global {
     receiveFromFlutter?: (data: string) => void;
     loadScene?: (json: string) => void;
     loadGLB?: (url: string) => void;
+    loadSceneBase64?: (b64: string) => void;
+    loadGLBBase64?: (b64: string) => void;
   }
 }
 
@@ -171,6 +173,36 @@ export function useBridge() {
       });
     };
 
+    // Base64-encoded variants — Flutter sends base64(utf8(json)) to avoid
+    // quote-escaping issues with AI-generated text.
+    window.loadSceneBase64 = (b64: string) => {
+      try {
+        const jsonString = atob(b64);
+        const blueprint = JSON.parse(jsonString);
+        console.log('[Bridge] loadSceneBase64 decoded:', blueprint.meta?.name);
+        handleFlutterMessage({
+          type: 'LOAD_SCENE',
+          payload: blueprint,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        console.error('[Bridge] loadSceneBase64 error:', error);
+      }
+    };
+
+    window.loadGLBBase64 = (b64: string) => {
+      try {
+        const url = atob(b64);
+        handleFlutterMessage({
+          type: 'LOAD_GLB',
+          payload: url,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        console.error('[Bridge] loadGLBBase64 error:', error);
+      }
+    };
+
     // Method 2: postMessage listener (for iframe embedding)
     const handlePostMessage = (event: MessageEvent) => {
       if (event.data && typeof event.data === 'object' && 'type' in event.data) {
@@ -193,6 +225,8 @@ export function useBridge() {
       delete window.receiveFromFlutter;
       delete window.loadScene;
       delete window.loadGLB;
+      delete window.loadSceneBase64;
+      delete window.loadGLBBase64;
     };
   }, [handleFlutterMessage, initGpuInfo, sendToFlutter]);
 

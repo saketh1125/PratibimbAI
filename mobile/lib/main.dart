@@ -12,10 +12,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/learn_screen.dart';
 import 'screens/processing_screen.dart';
 import 'screens/result_screen.dart';
+import 'services/scene_controller.dart';
+import 'services/visualize_result_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +28,12 @@ void main() {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const PratibimbAIApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => VisualizeResultProvider(),
+      child: const PratibimbAIApp(),
+    ),
+  );
 }
 
 class PratibimbAIApp extends StatelessWidget {
@@ -91,7 +99,6 @@ class PratibimbAIHome extends StatefulWidget {
 
 class _PratibimbAIHomeState extends State<PratibimbAIHome> {
   // Controllers
-  late InAppWebViewController _webViewController;
   final TextEditingController _searchController = TextEditingController();
   final SceneController _sceneController = SceneController();
 
@@ -101,17 +108,12 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
   bool _isSearching = false;
   String _currentScene = 'Taj Mahal';
   Timer? _loadingTimer;
-  bool _bridgeReady = false;
   bool _uiVisible = true;
   Timer? _uiHideTimer;
 
-  // Initial routing arguments
-  String? _initialArgs;
-  bool _hasAttemptedInitialLoad = false;
-
   // API Configuration
   static const String apiBaseUrl =
-      'http://localhost:8000'; // Change for production
+      'https://ai-3d-backend-526063550551.us-central1.run.app'; // Change for production
 
   @override
   void initState() {
@@ -130,34 +132,64 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_hasAttemptedInitialLoad) {
-      _hasAttemptedInitialLoad = true;
-      final args = ModalRoute.of(context)?.settings.arguments;
-      if (args != null && args is String) {
-        _initialArgs = args;
+    // Queue initial args — SceneController will execute when bridge is ready
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args != null && args is String) {
+      debugPrint('\n=== VIEWER ROUTE ===');
+      try {
+        final data = jsonDecode(args);
+        if (data['type'] == 'glb' && data['url'] != null) {
+          // Handle GLB URL
+          debugPrint('VIEWER ROUTE: type = glb');
+          debugPrint('VIEWER ROUTE: Calling loadGLB(url)');
+          debugPrint('VIEWER ROUTE: URL = "${data['url']}"');
+          _sceneController.loadGLB(data['url']);
+        } else {
+          // Handle scene JSON
+          debugPrint('VIEWER ROUTE: type = scene');
+          debugPrint('VIEWER ROUTE: Calling loadScene(json)');
+          debugPrint('VIEWER ROUTE: JSON length = ${args.length} characters');
+          debugPrint(
+              'VIEWER ROUTE: JSON preview = "${args.substring(0, 100)}..."');
+          _sceneController.loadScene(args);
+        }
+      } catch (e) {
+        // If parsing fails, treat as scene JSON
+        debugPrint('VIEWER ROUTE: JSON parse failed, treating as scene');
+        debugPrint('VIEWER ROUTE: Calling loadScene(json)');
+        debugPrint('VIEWER ROUTE: JSON length = ${args.length} characters');
+        _sceneController.loadScene(args);
       }
-      _checkAndLoadInitialArgs();
+      debugPrint('==================\n');
     }
   }
 
-  void _checkAndLoadInitialArgs() {
-    if (_bridgeReady && _hasAttemptedInitialLoad) {
-      if (_initialArgs != null) {
-        _sceneController.loadScene(_initialArgs!);
-        _initialArgs = null; // Prevent reloading
+  void loadSceneFromArgs(String jsonOrUrl) {
+    debugPrint('\n=== VIEWER RELOAD ===');
+    try {
+      final data = jsonDecode(jsonOrUrl);
+      if (data['type'] == 'glb' && data['url'] != null) {
+        // Handle GLB URL
+        debugPrint('VIEWER RELOAD: type = glb');
+        debugPrint('VIEWER RELOAD: Calling loadGLB(url)');
+        debugPrint('VIEWER RELOAD: URL = "${data['url']}"');
+        _sceneController.loadGLB(data['url']);
       } else {
-        // Show empty environment if no arguments provided
-        setState(() => _isLoading = false);
+        // Handle scene JSON
+        debugPrint('VIEWER RELOAD: type = scene');
+        debugPrint('VIEWER RELOAD: Calling loadScene(json)');
+        debugPrint(
+            'VIEWER RELOAD: JSON length = ${jsonOrUrl.length} characters');
+        _sceneController.loadScene(jsonOrUrl);
       }
+    } catch (e) {
+      // If parsing fails, treat as scene JSON
+      debugPrint('VIEWER RELOAD: JSON parse failed, treating as scene');
+      debugPrint('VIEWER RELOAD: Calling loadScene(json)');
+      debugPrint('VIEWER RELOAD: JSON length = ${jsonOrUrl.length} characters');
+      _sceneController.loadScene(jsonOrUrl);
     }
-  }
-
-  void loadSceneFromArgs(String json) {
-    if (_bridgeReady) {
-      _sceneController.loadScene(json);
-    } else {
-      _initialArgs = json;
-    }
+    debugPrint('===================\n');
   }
 
   @override
@@ -179,9 +211,11 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
           setState(() => _isLoading = false);
           break;
         case 'BRIDGE_READY':
-          setState(() => _bridgeReady = true);
+          _sceneController.markBridgeReady();
           debugPrint('Bridge is ready - can now load scenes');
-          _checkAndLoadInitialArgs();
+          // If no scene was queued, just dismiss loading
+          if (!_sceneController.isBridgeReady) return;
+          setState(() => _isLoading = false);
           break;
         case 'ERROR':
           _showError(data['error'] ?? 'Unknown error');
@@ -209,37 +243,66 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        if (data['success'] == true) {
-          if (data['blueprint'] != null) {
-            // Load synthesized scene
-            await _sceneController.loadScene(
-              jsonEncode(data['blueprint']),
-            );
-            setState(() => _currentScene = data['blueprint']['meta']['name']);
-          } else if (data['glb_url'] != null) {
-            // Load GLB model
-            await _sceneController.loadGLB(data['glb_url']);
-          }
-        } else {
-          _showError(data['error'] ?? 'Failed to generate scene');
-        }
-      } else {
+      if (response.statusCode != 200) {
         _showError('API request failed: ${response.statusCode}');
+        return;
+      }
+
+      final result = jsonDecode(response.body);
+
+      if (result['success'] != true) {
+        _showError(result['error'] ?? 'Scene generation failed');
+        return;
+      }
+
+      final sceneData = result['data'];
+
+      if (sceneData == null) {
+        _showError('No scene data received');
+        return;
+      }
+
+      // Load procedural scene
+      if (result['type'] == 'scene') {
+        await _sceneController.loadScene(jsonEncode(sceneData));
+
+        setState(() {
+          _currentScene = sceneData['meta']?['title'] ?? query;
+        });
+      }
+
+      // Load GLB asset if returned
+      else if (result['type'] == 'model' && sceneData['url'] != null) {
+        await _sceneController.loadGLB(sceneData['url']);
       }
     } catch (e) {
-      // Fallback: Send directly to WebView for local demo scenes
-      _webViewController.evaluateJavascript(
-        source: "window.loadScene && window.loadScene('$query')",
-      );
       debugPrint('API error (using fallback): $e');
+
+      // Safe fallback scene
+      final fallbackScene = {
+        'meta': {'title': query},
+        'environment': {'background': '#1a1a2e'},
+        'primitives': [
+          {
+            'type': 'box',
+            'material': {'color': '#8ab4f8'},
+            'transform': {
+              'pos': [0, 0.5, 0],
+              'rot': [0, 0, 0],
+              'scale': [1, 1, 1]
+            }
+          }
+        ],
+        'assets': []
+      };
+
+      await _sceneController.loadScene(jsonEncode(fallbackScene));
     } finally {
       setState(() {
         _isSearching = false;
         _isSidebarOpen = false;
       });
+
       _searchController.clear();
     }
   }
@@ -253,10 +316,10 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
     });
 
     // Wait for bridge to be ready
-    if (!_bridgeReady) {
+    if (!_sceneController.isBridgeReady) {
       debugPrint('Waiting for bridge to be ready...');
       await Future.delayed(const Duration(milliseconds: 500));
-      if (!_bridgeReady) {
+      if (!_sceneController.isBridgeReady) {
         _showError('Bridge not ready - please try again');
         setState(() => _isLoading = false);
         return;
@@ -518,7 +581,6 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
         ios: IOSInAppWebViewOptions(allowsInlineMediaPlayback: true),
       ),
       onWebViewCreated: (controller) {
-        _webViewController = controller;
         _sceneController.setWebViewController(controller);
         // Add bridge handler for communication from React
         controller.addJavaScriptHandler(
@@ -992,72 +1054,10 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
   }
 }
 
-/// Controller for communicating with the 3D scene
-class SceneController {
-  InAppWebViewController? _webViewController;
-
-  void setWebViewController(InAppWebViewController controller) {
-    _webViewController = controller;
-  }
-
-  /// Load a scene from JSON blueprint
-  Future<void> loadScene(String jsonString) async {
-    final controller = _webViewController;
-    if (controller == null) {
-      debugPrint('SceneController: WebView controller not ready');
-      return;
-    }
-
-    final safeLog = jsonString.length > 200
-        ? '${jsonString.substring(0, 200)}...'
-        : jsonString;
-    debugPrint('SceneController: Incoming JSON: $safeLog');
-
-    // Properly encode the JSON string as a JavaScript literal
-    final jsLiteral = jsonEncode(jsonString);
-    final jsCode = "window.loadScene && window.loadScene($jsLiteral)";
-    debugPrint('SceneController: Executing JS: ${jsCode.substring(0, 100)}...');
-
-    await controller.evaluateJavascript(source: jsCode);
-  }
-
-  /// Load a GLB model
-  Future<void> loadGLB(String url) async {
-    final controller = _webViewController;
-    if (controller == null) return;
-
-    await controller.evaluateJavascript(
-      source: "window.loadGLB && window.loadGLB('$url')",
-    );
-  }
-
-  /// Update environment settings
-  Future<void> updateEnvironment(Map<String, dynamic> env) async {
-    final controller = _webViewController;
-    if (controller == null) return;
-
-    final escapedJson = jsonEncode(env).replaceAll("'", "\\'");
-    await controller.evaluateJavascript(
-      source:
-          "window.updateEnvironment && window.updateEnvironment('$escapedJson')",
-    );
-  }
-
-  /// Reset the scene
-  Future<void> resetScene() async {
-    final controller = _webViewController;
-    if (controller == null) return;
-
-    await controller.evaluateJavascript(
-      source: "window.resetScene && window.resetScene()",
-    );
-  }
-
-  /// Take a screenshot
-  Future<void> takeScreenshot() async {
-    // Implementation for screenshot capture
-  }
-}
+/// ────────────────────────────────────────────
+/// NOTE: SceneController has been moved to
+///   lib/services/scene_controller.dart
+/// ────────────────────────────────────────────
 
 /// Glassmorphic container widget
 class GlassContainer extends StatelessWidget {

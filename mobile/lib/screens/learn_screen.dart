@@ -15,6 +15,7 @@ class LearnScreen extends StatefulWidget {
 class _LearnScreenState extends State<LearnScreen> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  bool dataSaver = false;
 
   static const _suggestions = [
     'DNA Structure',
@@ -36,7 +37,7 @@ class _LearnScreenState extends State<LearnScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ProcessingScreen(query: query),
+        builder: (_) => ProcessingScreen(query: query, dataSaver: dataSaver),
       ),
     );
   }
@@ -110,8 +111,7 @@ class _LearnScreenState extends State<LearnScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: BackdropFilter(
-                            filter:
-                                ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.07),
@@ -146,6 +146,17 @@ class _LearnScreenState extends State<LearnScreen> {
                         ),
 
                         const SizedBox(height: 24),
+
+                        SwitchListTile(
+                          value: dataSaver,
+                          onChanged: (v) => setState(() => dataSaver = v),
+                          title: const Text('Data Saver'),
+                          subtitle: const Text('Use lighter procedural scenes'),
+                          activeColor: const Color(0xFF6366F1),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+
+                        const SizedBox(height: 16),
 
                         // ─── Suggestion chips ───
                         Wrap(
@@ -246,4 +257,3 @@ class _LearnScreenState extends State<LearnScreen> {
     );
   }
 }
-

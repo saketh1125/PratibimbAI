@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
+import '../services/visualize_result_provider.dart';
 import 'explanation_screen.dart';
 
 /// PratibimbAI – Result Screen
@@ -11,18 +15,16 @@ class ResultScreen extends StatelessWidget {
   const ResultScreen(
       {super.key, required this.query, this.blueprintJson, this.explanation});
 
-  void _playExplanationAudio(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('🔊 Audio explanation coming soon…'),
-        backgroundColor: Color(0xFF6366F1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Read from provider if constructor params are null
+    final provider = context.watch<VisualizeResultProvider>();
+    final effectiveBlueprint = blueprintJson ?? provider.result?.blueprintJson;
+    final effectiveExplanation = explanation ?? provider.result?.explanation;
+    final resultType = provider.result?.type;
+    final glbUrl = provider.result?.glbUrl;
+    final processingTime = provider.result?.processingTime;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A1A),
       body: Stack(
@@ -125,12 +127,24 @@ class ResultScreen extends StatelessWidget {
                           icon: Icons.view_in_ar_rounded,
                           label: 'View 3D Model',
                           onTap: () {
-                            if (blueprintJson != null) {
+                            if (resultType == 'glb' && glbUrl != null) {
+                              // Pass GLB URL to viewer
                               Navigator.of(context).pushNamed(
                                 '/viewer',
-                                arguments: blueprintJson,
+                                arguments: jsonEncode({
+                                  'type': 'glb',
+                                  'url': glbUrl,
+                                  'query': query,
+                                }),
+                              );
+                            } else if (effectiveBlueprint != null) {
+                              // Pass scene blueprint to viewer
+                              Navigator.of(context).pushNamed(
+                                '/viewer',
+                                arguments: effectiveBlueprint,
                               );
                             } else {
+                              // Fallback
                               Navigator.of(context).pushNamed(
                                 '/viewer',
                                 arguments: '{"meta": {"name": "$query"}}',
@@ -146,11 +160,11 @@ class ResultScreen extends StatelessWidget {
                           label: 'Read Explanation',
                           outlined: true,
                           onTap: () {
-                            if (explanation != null) {
+                            if (effectiveExplanation != null) {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (_) => ExplanationScreen(
-                                      explanation: explanation!),
+                                      explanation: effectiveExplanation),
                                 ),
                               );
                             }
@@ -164,11 +178,11 @@ class ResultScreen extends StatelessWidget {
                           label: 'Listen Explanation',
                           outlined: true,
                           onTap: () {
-                            if (explanation != null) {
+                            if (effectiveExplanation != null) {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (_) => ExplanationScreen(
-                                      explanation: explanation!),
+                                      explanation: effectiveExplanation),
                                 ),
                               );
                             }
@@ -181,6 +195,38 @@ class ResultScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (kDebugMode)
+            Positioned(
+              top: 8,
+              left: 8,
+              child: IgnorePointer(
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  color: Colors.black.withOpacity(0.6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Mode: ${resultType ?? 'n/a'}',
+                          style: const TextStyle(
+                              fontSize: 11, color: Colors.white)),
+                      const SizedBox(height: 2),
+                      const Text('Network: n/a',
+                          style: TextStyle(fontSize: 11, color: Colors.white)),
+                      const SizedBox(height: 2),
+                      const Text('DataSaver: n/a',
+                          style: TextStyle(fontSize: 11, color: Colors.white)),
+                      const SizedBox(height: 2),
+                      Text(
+                        'API: ${processingTime != null ? '${processingTime}ms' : 'n/a'}',
+                        style:
+                            const TextStyle(fontSize: 11, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

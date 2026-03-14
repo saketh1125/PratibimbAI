@@ -1,5 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import '../models/visualize_result.dart';
+import '../services/visualize_result_provider.dart';
+import '../services/api_service.dart';
 import 'result_screen.dart';
 
 /// PratibimbAI – Processing Screen
@@ -8,7 +13,9 @@ import 'result_screen.dart';
 
 class ProcessingScreen extends StatefulWidget {
   final String query;
-  const ProcessingScreen({super.key, required this.query});
+  final bool dataSaver;
+  const ProcessingScreen({super.key, required this.query, bool? dataSaver})
+      : dataSaver = dataSaver ?? false;
 
   @override
   State<ProcessingScreen> createState() => _ProcessingScreenState();
@@ -24,7 +31,6 @@ class _ProcessingScreenState extends State<ProcessingScreen>
 
   int _messageIndex = 0;
   Timer? _rotateTimer;
-  Timer? _navTimer;
   late AnimationController _pulseController;
 
   @override
@@ -37,32 +43,96 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
 
-    // Rotate status text every 2 s
-    _rotateTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (mounted) {
-        setState(() => _messageIndex = (_messageIndex + 1) % _messages.length);
-      }
-    });
-
-    // Auto-navigate after 3 s
-    _navTimer = Timer(const Duration(seconds: 3), _navigateToResult);
+    _startMessageRotation();
+    _callApi();
   }
 
   @override
   void dispose() {
     _rotateTimer?.cancel();
-    _navTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
 
-  void _navigateToResult() {
+  void _startMessageRotation() {
+    _rotateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _messageIndex = (_messageIndex + 1) % _messages.length;
+        });
+      }
+    });
+  }
+
+  Future<void> _callApi() async {
+    try {
+      final network = widget.dataSaver ? 'slow' : await detectNetworkSpeed();
+      final result = await ApiService.visualize(
+        widget.query,
+        style: 'educational',
+        complexity: 'high',
+        network: network,
+        dataSaver: widget.dataSaver,
+      );
+
+      if (mounted) {
+        _navigateToResult(result);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar(e.toString());
+      }
+    }
+  }
+
+  Future<String> detectNetworkSpeed() async {
+    const testUrl =
+        'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png';
+    final stopwatch = Stopwatch()..start();
+    try {
+      final response = await http
+          .get(Uri.parse(testUrl))
+          .timeout(const Duration(seconds: 3));
+      stopwatch.stop();
+      final bytes = response.bodyBytes.length;
+      final seconds = stopwatch.elapsedMilliseconds / 1000;
+      if (seconds == 0) return 'fast';
+      final mbps = (bytes * 8) / seconds / 1e6;
+      return mbps < 3 ? 'slow' : 'fast';
+    } catch (_) {
+      return 'fast';
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Failed to generate visualization: $message'),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Retry',
+          textColor: Colors.white,
+          onPressed: () {
+            _callApi();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _navigateToResult(VisualizeResult result) {
     if (!mounted) return;
+    // Store result in provider for cross-screen persistence
+    context.read<VisualizeResultProvider>().setResult(result);
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
-        pageBuilder: (_, __, ___) =>
-            ResultScreen(query: widget.query),
+        pageBuilder: (_, __, ___) => ResultScreen(
+          query: result.query,
+          blueprintJson: result.blueprintJson,
+          explanation: result.explanation,
+        ),
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -157,8 +227,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                         height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation(Color(0xFF6366F1)),
+                          valueColor: AlwaysStoppedAnimation(Color(0xFF6366F1)),
                         ),
                       ),
                       const SizedBox(width: 10),
