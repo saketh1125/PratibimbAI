@@ -4,10 +4,14 @@
   <img src="https://img.shields.io/badge/React%20Three%20Fiber-3D%20Engine-blue" />
   <img src="https://img.shields.io/badge/Flutter-Mobile%20Shell-02569B" />
   <img src="https://img.shields.io/badge/FastAPI-Backend-009688" />
-  <img src="https://img.shields.io/badge/Gemini%201.5%20Pro-AI%20Synthesis-4285F4" />
+  <img src="https://img.shields.io/badge/Gemini%203%20Pro-AI%20Synthesis-4285F4" />
 </p>
 
-> **International Tech Competition Grade** - A seamless pipeline where a Flutter app hosts a local React Three Fiber (R3F) engine, pulling data from a FastAPI server that either finds a GLB or synthesizes a scene via Gemini 1.5 Pro using Compositional Geometry.
+> **Tech Competition Grade** - A seamless pipeline where a Flutter app hosts a local React Three Fiber (R3F) engine, pulling data from a FastAPI server that either finds a GLB or synthesizes a scene via Gemini 1.5 Pro using Compositional Geometry.
+
+This is only the Application side Code REPO -- 
+Server Side Github URL - https://github.com/veeresh0804/Sankalp-Pramana
+
 
 ## 🏗️ Architecture
 
@@ -39,7 +43,7 @@
 │                      FastAPI Backend                             │
 │  ┌─────────────────────┐    ┌─────────────────────────────────┐ │
 │  │   SearchService     │    │       SynthesisService          │ │
-│  │   (Sketchfab Mock)  │    │   (Gemini 1.5 Pro Integration)  │ │
+│  │   (Sketchfab API)   │    │   (Gemini 3 Pro Integration)  │ │
 │  └─────────────────────┘    └─────────────────────────────────┘ │
 │                                         │                        │
 │                     Compositional Geometry Prompting             │
