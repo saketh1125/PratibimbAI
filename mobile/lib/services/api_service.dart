@@ -79,6 +79,12 @@ class ApiService {
 
       final result = VisualizeResult.fromJson(responseData, query);
 
+      if (responseData['type'] == 'glb' &&
+          responseData['data']?['url'] != null) {
+        debugPrint(
+            '[GLB][Flutter] API returned GLB: ${responseData['data']['url']} (network=${requestBody['network']})');
+      }
+
       debugPrint('\n=== PARSED RESULT ===');
       debugPrint('PARSED RESULT: type = "${result.type}"');
       debugPrint('PARSED RESULT: success = ${result.success}');

@@ -128,6 +128,8 @@ class ResultScreen extends StatelessWidget {
                           label: 'View 3D Model',
                           onTap: () {
                             if (resultType == 'glb' && glbUrl != null) {
+                              debugPrint(
+                                  '[GLB][Flutter] Navigating to viewer with GLB: $glbUrl');
                               // Pass GLB URL to viewer
                               Navigator.of(context).pushNamed(
                                 '/viewer',

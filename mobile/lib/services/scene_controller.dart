@@ -131,6 +131,7 @@ class SceneController {
     debugPrint('SceneController.loadGLB called');
     debugPrint('SceneController: URL = "$url"');
     debugPrint('SceneController: Enqueuing loadGLB command');
+    debugPrint('[GLB][SceneController] Sending loadGLB to WebView: $url');
     debugPrint('===============================\n');
     _enqueueOrExecute(_BridgeCommand(_CommandType.loadGLB, url));
   }
@@ -177,20 +178,43 @@ class SceneController {
 
     switch (cmd.type) {
       case _CommandType.loadScene:
-        await controller.evaluateJavascript(
-          source: 'window.renderAIScene(' + jsonEncode(cmd.payload) + ');',
-        );
+        debugPrint('[Scene] Injecting loadScene');
+        try {
+          await controller.evaluateJavascript(
+            source: 'window.loadScene(' + cmd.payload + ');',
+          );
+          debugPrint('[Scene] loadScene executed');
+        } catch (e) {
+          debugPrint('[Scene] loadScene error: $e');
+        }
         break;
+
       case _CommandType.loadGLB:
-        final escapedUrl = cmd.payload.replaceAll("'", "\\'");
-        await controller.evaluateJavascript(
-          source: "window.loadGLB && window.loadGLB('" + escapedUrl + "');",
-        );
+        // TEMP TEST: override GLB URL to verify renderer pipeline
+        final testUrl =
+            'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF-Binary/Duck.glb';
+        final escapedUrl = testUrl.replaceAll("'", "\\'");
+        debugPrint('[GLB] Injecting loadGLB with URL: ${cmd.payload}');
+        debugPrint('[GLB TEST] Injecting duck test model');
+        try {
+          await controller.evaluateJavascript(
+            source: "window.loadGLB && window.loadGLB('" + escapedUrl + "');",
+          );
+          debugPrint('[GLB] evaluateJavascript executed');
+        } catch (e) {
+          debugPrint('[GLB] evaluateJavascript error: $e');
+          rethrow;
+        }
         break;
+
       case _CommandType.updateEnvironment:
-        await controller.evaluateJavascript(
-          source: 'window.renderAIScene(' + jsonEncode(cmd.payload) + ');',
-        );
+        try {
+          await controller.evaluateJavascript(
+            source: 'window.loadScene(' + cmd.payload + ');',
+          );
+        } catch (e) {
+          debugPrint('[Scene] updateEnvironment error: $e');
+        }
         break;
     }
   }

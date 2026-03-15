@@ -69,6 +69,8 @@ export function useBridge() {
         case 'LOAD_GLB':
           setLoading(true);
           const glbUrl = message.payload as string;
+          console.log('[GLB] Bridge received URL:', glbUrl);
+          console.log('[GLB] Scene assets:', [{ id: 'main-model', url: glbUrl, pos: [0, 0, 0], scale: [1, 1, 1] }]);
           // Create a scene with just the GLB asset
           setScene({
             meta: { name: 'GLB Model', description: 'Loaded from URL', gpu_status: 'active' },
@@ -76,6 +78,7 @@ export function useBridge() {
             assets: [{ id: 'main-model', url: glbUrl, pos: [0, 0, 0], scale: [1, 1, 1] }],
             primitives: []
           });
+          console.log('[GLB][Renderer] Scene constructed with GLB asset:', glbUrl);
           setLoading(false);
           sendToFlutter({
             type: 'ASSET_LOADED',
@@ -166,6 +169,7 @@ export function useBridge() {
     };
 
     window.loadGLB = (url: string) => {
+      console.log('[GLB] Bridge received URL:', url);
       handleFlutterMessage({
         type: 'LOAD_GLB',
         payload: url,

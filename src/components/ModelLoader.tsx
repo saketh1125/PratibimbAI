@@ -14,7 +14,10 @@ const GLBModel: React.FC<ModelLoaderProps> = ({ asset, onLoad }) => {
   const groupRef = useRef<THREE.Group>(null);
   
   // Load the GLTF/GLB model
+  console.log('[GLB] Loading model:', asset.url);
   const { scene, animations } = useGLTF(asset.url, true);
+  console.log('[GLB] Model loaded successfully:', asset.url);
+  console.log('[GLB][Loader] GLB loaded successfully:', asset.url);
   
   // Setup animations if available
   const { actions, mixer } = useAnimations(animations, groupRef);
@@ -22,6 +25,8 @@ const GLBModel: React.FC<ModelLoaderProps> = ({ asset, onLoad }) => {
   useEffect(() => {
     // Clone the scene to allow multiple instances
     if (scene) {
+      console.log('[GLB][Loader] GLB loaded successfully:', asset.url);
+      console.log('[GLB] Model loaded successfully:', asset.url);
       // Enable shadows for all meshes
       scene.traverse((child) => {
         if (child instanceof THREE.Mesh) {
@@ -86,6 +91,7 @@ class ModelErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error) {
     console.error('[ModelLoader] Error loading model:', error);
+    console.error('[GLB] Loader error:', error, 'URL:', (this.props as any)?.children ? undefined : undefined);
     this.props.onError?.(error);
   }
 

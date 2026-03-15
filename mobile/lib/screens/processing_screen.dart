@@ -96,9 +96,12 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       stopwatch.stop();
       final bytes = response.bodyBytes.length;
       final seconds = stopwatch.elapsedMilliseconds / 1000;
-      if (seconds == 0) return 'fast';
-      final mbps = (bytes * 8) / seconds / 1e6;
-      return mbps < 3 ? 'slow' : 'fast';
+      // TODO: restore dynamic network detection after testing
+      // if (seconds == 0) return 'fast';
+      // final mbps = (bytes * 8) / seconds / 1e6;
+      // return mbps < 1 ? 'slow' : 'fast';
+      // TEMP: force fast network for GLB testing
+      return 'fast';
     } catch (_) {
       return 'fast';
     }

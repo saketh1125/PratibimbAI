@@ -140,6 +140,7 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
         final data = jsonDecode(args);
         if (data['type'] == 'glb' && data['url'] != null) {
           // Handle GLB URL
+          debugPrint('[GLB][Flutter] Viewer loading GLB: ${data['url']}');
           debugPrint('VIEWER ROUTE: type = glb');
           debugPrint('VIEWER ROUTE: Calling loadGLB(url)');
           debugPrint('VIEWER ROUTE: URL = "${data['url']}"');
@@ -525,7 +526,7 @@ class _PratibimbAIHomeState extends State<PratibimbAIHome> {
   void _resetUiTimer() {
     _uiHideTimer?.cancel();
     setState(() => _uiVisible = true);
-    _uiHideTimer = Timer(const Duration(seconds: 3), () {
+    _uiHideTimer = Timer(const Duration(seconds: 8), () {
       if (mounted) {
         setState(() => _uiVisible = false);
       }
